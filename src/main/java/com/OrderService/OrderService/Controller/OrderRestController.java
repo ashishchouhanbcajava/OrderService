@@ -1,7 +1,9 @@
 package com.OrderService.OrderService.Controller;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.misc.NotNull;
@@ -24,6 +26,7 @@ import com.OrderService.OrderService.FeignClient.ProductClient;
 import com.OrderService.OrderService.Services.OrderService;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.spring6.circuitbreaker.configure.CircuitBreakerAspect;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RequestMapping("/order")
@@ -49,15 +52,20 @@ public class OrderRestController {
 
 	@GetMapping("/beans")
 	public String beans() {
-		String[] beans = context.getBeanDefinitionNames();
+//		String[] beans = context.getBeanDefinitionNames();
+//
+//		for (String bean : beans) {
+//			System.out.println("im in iteration beans : " + bean);
+//			if (bean.toLowerCase().contains("circuit")) {
+//				System.out.println(bean);
+//			}
+//		}
 
-		for (String bean : beans) {
-			System.out.println("im in iteration beans : " + bean);
-			if (bean.toLowerCase().contains("circuit")) {
-				System.out.println(bean);
-			}
-		}
+		String[] beanNamesForType = context.getBeanNamesForType(
+				io.github.resilience4j.spring6.circuitbreaker.configure.CircuitBreakerAspect.class);
 
+		String string = Arrays.toString(beanNamesForType);
+		System.out.println("circuit breaker bean  : " + string);
 		return "Done";
 	}
 
