@@ -9,8 +9,8 @@ import com.OrderService.OrderService.Beans.Order;
 //import com.OrderService.OrdSerService.Kafka.OrderEventProducer;
 import com.OrderService.OrderService.Repository.OrderRepository;
 
-import eventClasses.OrderCreateEvent;
 import eventClasses.OrderItemsDto;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 @Service
 public class OrderService {
@@ -75,4 +75,12 @@ public class OrderService {
 		return String.format("ORD_%04d", newNumber);
 	}
 
+	@CircuitBreaker(name = "product-service", fallbackMethod = "fallback")
+	public String test() {
+		throw new RuntimeException("Test");
+	}
+
+	public String fallback(RuntimeException ex) {
+		return "Fallback Called";
+	}
 }
