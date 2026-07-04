@@ -23,10 +23,11 @@ import com.OrderService.OrderService.Dtos.OrderItemsDto;
 import com.OrderService.OrderService.Dtos.OrdersDto;
 import com.OrderService.OrderService.Dtos.ProductDto;
 import com.OrderService.OrderService.FeignClient.ProductClient;
+import com.OrderService.OrderService.FeignClientServices.ProductClientService;
 import com.OrderService.OrderService.Services.OrderService;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.spring6.circuitbreaker.configure.CircuitBreakerAspect;
+import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RequestMapping("/order")
@@ -36,7 +37,7 @@ public class OrderRestController {
 	@Autowired
 	private OrderService orderService;
 	@Autowired
-	private ProductClient productClient;
+	private ProductClientService productClientService;
 
 	@Autowired
 	private ApplicationContext context;
@@ -50,34 +51,15 @@ public class OrderRestController {
 		return ResponseEntity.ok(all);
 	}
 
-	@GetMapping("/beans")
-	public String beans() {
-//		String[] beans = context.getBeanDefinitionNames();
-//
-//		for (String bean : beans) {
-//			System.out.println("im in iteration beans : " + bean);
-//			if (bean.toLowerCase().contains("circuit")) {
-//				System.out.println(bean);
-//			}
-//		}
-
-		String[] beanNamesForType = context.getBeanNamesForType(
-				io.github.resilience4j.spring6.circuitbreaker.configure.CircuitBreakerAspect.class);
-
-		String string = Arrays.toString(beanNamesForType);
-		System.out.println("circuit breaker bean  : " + string);
-		return "Done";
-	}
-
 	@GetMapping("/test")
 	public String test() {
 		return orderService.test();
 	}
 
-	@CircuitBreaker(name = "product-service", fallbackMethod = "productServiceFallBack")
 	@GetMapping("/getOrdersByUserId/{id}")
-	public ResponseEntity<?> getOrders(@NotNull @PathVariable Integer id, HttpServletRequest request) {
-
+	public ResponseEntity<?> getOrders(@jakarta.validation.constraints.NotNull @PathVariable Integer id,
+			HttpServletRequest request) {
+		System.out.println("Controller Executed");
 		String url = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
 				+ request.getRequestURI();
 
@@ -90,7 +72,6 @@ public class OrderRestController {
 
 		if (byUserId == null) {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(new ArrayList<>());
-
 		}
 
 		List<OrdersDto> collect = byUserId.stream().map(e -> {
@@ -102,7 +83,7 @@ public class OrderRestController {
 				OrderItemsDto item = new OrderItemsDto();
 				item.setId(f.getId());
 				item.setName(f.getName());
-				ProductDto product = productClient.getProduct(f.getProductId());
+				ProductDto product = productClientService.getProduct(f.getProductId());
 				products.add(product);
 				item.setProduct(products);
 
@@ -114,10 +95,7 @@ public class OrderRestController {
 		}).collect(Collectors.toList());
 
 		return ResponseEntity.ok(collect);
-	}
 
-	public ResponseEntity<?> productServiceFallBack(Integer id, HttpServletRequest request, Exception e) {
-		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Product Service is unavailable");
 	}
 
 	@GetMapping("/getOrder/{id}")
